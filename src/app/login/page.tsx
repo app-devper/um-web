@@ -15,7 +15,7 @@ export default function LoginPage() {
   const { login } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [system, setSystem] = useState("");
+  const [system, setSystem] = useState("SM");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -80,6 +80,7 @@ export default function LoginPage() {
                 value={system}
                 onChange={(e) => setSystem(e.target.value)}
                 required
+                disabled
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
