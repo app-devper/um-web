@@ -6,16 +6,20 @@ import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Users, Server, UserCircle, Shield } from "lucide-react";
 
-const navItems = [
-  { href: "/users", label: "Users", icon: Users },
-  { href: "/systems", label: "Systems", icon: Server },
+type NavItem = { href: string; label: string; icon: typeof Users; roles?: ("SUPER" | "ADMIN" | "USER")[] };
+
+const navItems: NavItem[] = [
+  { href: "/users", label: "Users", icon: Users, roles: ["SUPER", "ADMIN"] },
+  { href: "/systems", label: "Systems", icon: Server, roles: ["SUPER"] },
   { href: "/profile", label: "Profile", icon: UserCircle },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const { user } = useAuth();
-  const visibleNavItems = navItems.filter((item) => item.href !== "/systems" || user?.role === "SUPER");
+  const visibleNavItems = navItems.filter(
+    (item) => !item.roles || (user && item.roles.includes(user.role))
+  );
 
   return (
     <aside className="hidden md:flex w-64 flex-col border-r bg-card">

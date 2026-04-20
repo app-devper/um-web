@@ -10,16 +10,20 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Users, Server, UserCircle, Shield } from "lucide-react";
 
-const navItems = [
-  { href: "/users", label: "Users", icon: Users },
-  { href: "/systems", label: "Systems", icon: Server },
+type NavItem = { href: string; label: string; icon: typeof Users; roles?: ("SUPER" | "ADMIN" | "USER")[] };
+
+const navItems: NavItem[] = [
+  { href: "/users", label: "Users", icon: Users, roles: ["SUPER", "ADMIN"] },
+  { href: "/systems", label: "Systems", icon: Server, roles: ["SUPER"] },
   { href: "/profile", label: "Profile", icon: UserCircle },
 ];
 
 export function Topbar() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
-  const visibleNavItems = navItems.filter((item) => item.href !== "/systems" || user?.role === "SUPER");
+  const visibleNavItems = navItems.filter(
+    (item) => !item.roles || (user && item.roles.includes(user.role))
+  );
 
   const initials = user
     ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase() || user.username[0].toUpperCase()

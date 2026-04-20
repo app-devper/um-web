@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import api from "@/lib/api";
-import type { UpdateUserRequest, ChangePasswordRequest, AppError } from "@/types";
+import type { UpdateUserRequest, ChangePasswordRequest, AppError, System } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,6 +27,7 @@ export default function ProfilePage() {
   });
   const [profileLoading, setProfileLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
+  const [currentSystem, setCurrentSystem] = useState<System | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -38,6 +39,21 @@ export default function ProfilePage() {
       });
     }
   }, [user]);
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .get<System>("/auth/system")
+      .then((res) => {
+        if (!cancelled) setCurrentSystem(res.data);
+      })
+      .catch(() => {
+        if (!cancelled) setCurrentSystem(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleError = (err: unknown) => {
     if (axios.isAxiosError(err) && err.response?.data) {
@@ -105,6 +121,13 @@ export default function ProfilePage() {
               <span className="text-muted-foreground w-24">Client ID:</span>
               <Badge variant="outline">{user.clientId}</Badge>
             </div>
+            {currentSystem && (
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-muted-foreground w-24">System:</span>
+                <Badge variant="secondary">{currentSystem.systemCode}</Badge>
+                <span className="text-muted-foreground">{currentSystem.systemName}</span>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

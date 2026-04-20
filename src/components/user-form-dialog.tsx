@@ -20,16 +20,22 @@ interface CreateDialogProps {
   loading?: boolean;
 }
 
+const emptyCreateForm: CreateUserRequest = {
+  firstName: "",
+  lastName: "",
+  phone: "",
+  email: "",
+  username: "",
+  password: "",
+  clientId: "",
+};
+
 export function CreateUserDialog({ open, onOpenChange, onSubmit, loading }: CreateDialogProps) {
-  const [form, setForm] = useState<CreateUserRequest>({
-    firstName: "",
-    lastName: "",
-    phone: "",
-    email: "",
-    username: "",
-    password: "",
-    clientId: "",
-  });
+  const [form, setForm] = useState<CreateUserRequest>(emptyCreateForm);
+
+  useEffect(() => {
+    if (open) setForm(emptyCreateForm);
+  }, [open]);
 
   const handleChange = (field: keyof CreateUserRequest, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -38,7 +44,6 @@ export function CreateUserDialog({ open, onOpenChange, onSubmit, loading }: Crea
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await onSubmit(form);
-    setForm({ firstName: "", lastName: "", phone: "", email: "", username: "", password: "", clientId: "" });
   };
 
   return (

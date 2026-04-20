@@ -26,9 +26,11 @@ import { toast } from "sonner";
 import { CreateUserDialog, EditUserDialog, SetPasswordDialog } from "@/components/user-form-dialog";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import axios from "axios";
+import { useRouter } from "next/navigation";
 
 export default function UsersPage() {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, isLoading: authLoading } = useAuth();
+  const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -59,8 +61,17 @@ export default function UsersPage() {
   }, []);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (currentUser && currentUser.role !== "SUPER" && currentUser.role !== "ADMIN") {
+      router.replace("/profile");
+      return;
+    }
     fetchUsers();
-  }, [fetchUsers]);
+  }, [authLoading, currentUser, fetchUsers, router]);
+
+  if (authLoading || (currentUser && currentUser.role !== "SUPER" && currentUser.role !== "ADMIN")) {
+    return null;
+  }
 
   const handleError = (err: unknown) => {
     if (axios.isAxiosError(err) && err.response?.data) {
