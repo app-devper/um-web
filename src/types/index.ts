@@ -71,6 +71,16 @@ export interface System {
   host: string;
 }
 
+export interface Session {
+  sessionId: string;
+  createdAt: string;
+  lastActivity: string;
+  userAgent: string;
+  ipAddress: string;
+  system: string;
+  current: boolean;
+}
+
 export interface CreateSystemRequest {
   clientId: string;
   systemName: string;

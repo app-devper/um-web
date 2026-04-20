@@ -1,17 +1,51 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import api from "@/lib/api";
-import type { UpdateUserRequest, ChangePasswordRequest, AppError, System } from "@/types";
+import type { UpdateUserRequest, ChangePasswordRequest, AppError, System, Session } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { toast } from "sonner";
 import axios from "axios";
+import { Monitor, Smartphone, Trash2 } from "lucide-react";
+
+function describeUserAgent(ua: string): string {
+  if (!ua) return "Unknown device";
+  const isMobile = /Mobile|Android|iPhone|iPad|iPod/.test(ua);
+  let browser = "Browser";
+  if (/Edg\//.test(ua)) browser = "Edge";
+  else if (/Chrome\//.test(ua)) browser = "Chrome";
+  else if (/Firefox\//.test(ua)) browser = "Firefox";
+  else if (/Safari\//.test(ua)) browser = "Safari";
+  let os = "";
+  if (/Windows/.test(ua)) os = "Windows";
+  else if (/Mac OS X|Macintosh/.test(ua)) os = "macOS";
+  else if (/Android/.test(ua)) os = "Android";
+  else if (/iPhone|iPad|iPod/.test(ua)) os = "iOS";
+  else if (/Linux/.test(ua)) os = "Linux";
+  return [browser, os].filter(Boolean).join(" on ") + (isMobile ? " (mobile)" : "");
+}
+
+function formatRelative(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  const diffMs = Date.now() - d.getTime();
+  const sec = Math.round(diffMs / 1000);
+  if (sec < 60) return "just now";
+  const min = Math.round(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.round(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.round(hr / 24);
+  if (day < 7) return `${day}d ago`;
+  return d.toLocaleDateString();
+}
 
 export default function ProfilePage() {
   const { user, refreshUser } = useAuth();
@@ -28,6 +62,11 @@ export default function ProfilePage() {
   const [profileLoading, setProfileLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [currentSystem, setCurrentSystem] = useState<System | null>(null);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [revokeAllOpen, setRevokeAllOpen] = useState(false);
+  const [revokeAllLoading, setRevokeAllLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -54,6 +93,49 @@ export default function ProfilePage() {
       cancelled = true;
     };
   }, []);
+
+  const fetchSessions = useCallback(async () => {
+    setSessionsLoading(true);
+    try {
+      const res = await api.get<Session[]>("/auth/sessions");
+      setSessions(res.data || []);
+    } catch {
+      toast.error("Failed to load sessions");
+    } finally {
+      setSessionsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSessions();
+  }, [fetchSessions]);
+
+  const handleRevoke = async (sessionId: string) => {
+    setRevokingId(sessionId);
+    try {
+      await api.delete(`/auth/sessions/${sessionId}`);
+      toast.success("Session revoked");
+      fetchSessions();
+    } catch (err) {
+      handleError(err);
+    } finally {
+      setRevokingId(null);
+    }
+  };
+
+  const handleRevokeAll = async () => {
+    setRevokeAllLoading(true);
+    try {
+      const res = await api.delete<{ revoked: number }>("/auth/sessions");
+      toast.success(`Signed out ${res.data.revoked} other session(s)`);
+      setRevokeAllOpen(false);
+      fetchSessions();
+    } catch (err) {
+      handleError(err);
+    } finally {
+      setRevokeAllLoading(false);
+    }
+  };
 
   const handleError = (err: unknown) => {
     if (axios.isAxiosError(err) && err.response?.data) {
@@ -221,6 +303,75 @@ export default function ProfilePage() {
           </form>
         </CardContent>
       </Card>
+
+      <Separator />
+
+      <Card>
+        <CardHeader className="flex flex-row items-start justify-between">
+          <div>
+            <CardTitle>Active Sessions</CardTitle>
+            <CardDescription>Devices currently signed in to your account</CardDescription>
+          </div>
+          {sessions.filter((s) => !s.current).length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => setRevokeAllOpen(true)}>
+              Sign out everywhere else
+            </Button>
+          )}
+        </CardHeader>
+        <CardContent>
+          {sessionsLoading ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">Loading sessions...</div>
+          ) : sessions.length === 0 ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">No active sessions</div>
+          ) : (
+            <ul className="space-y-3">
+              {sessions.map((s) => {
+                const isMobile = /Mobile|Android|iPhone|iPad|iPod/.test(s.userAgent);
+                const Icon = isMobile ? Smartphone : Monitor;
+                return (
+                  <li
+                    key={s.sessionId}
+                    className="flex items-start gap-3 rounded-md border p-3"
+                  >
+                    <Icon className="mt-0.5 h-5 w-5 text-muted-foreground shrink-0" />
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium">{describeUserAgent(s.userAgent)}</span>
+                        {s.current && <Badge variant="secondary">This device</Badge>}
+                        {s.system && <Badge variant="outline">{s.system}</Badge>}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {s.ipAddress && <span>IP {s.ipAddress} · </span>}
+                        Signed in {formatRelative(s.createdAt)} · Active {formatRelative(s.lastActivity)}
+                      </div>
+                    </div>
+                    {!s.current && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRevoke(s.sessionId)}
+                        disabled={revokingId === s.sessionId}
+                        title="Revoke session"
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      <ConfirmDialog
+        open={revokeAllOpen}
+        onOpenChange={setRevokeAllOpen}
+        title="Sign out everywhere else"
+        description="This will end all other active sessions. This device will stay signed in."
+        onConfirm={handleRevokeAll}
+        loading={revokeAllLoading}
+      />
     </div>
   );
 }
