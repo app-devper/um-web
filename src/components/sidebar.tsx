@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Users, Server, UserCircle, Shield } from "lucide-react";
 
@@ -13,6 +14,8 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { user } = useAuth();
+  const visibleNavItems = navItems.filter((item) => item.href !== "/systems" || user?.role === "SUPER");
 
   return (
     <aside className="hidden md:flex w-64 flex-col border-r bg-card">
@@ -21,7 +24,7 @@ export function Sidebar() {
         <span>User Management</span>
       </div>
       <nav className="flex-1 p-3 space-y-1">
-        {navItems.map((item) => (
+        {visibleNavItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}

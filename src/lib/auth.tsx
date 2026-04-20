@@ -47,14 +47,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, 4 * 60 * 1000); // every 4 minutes
   }, [clearKeepAlive]);
 
+  const fetchCurrentUser = useCallback(async () => {
+    const res = await api.get<User>("/user/info");
+    setUser(res.data);
+    return res.data;
+  }, []);
+
   const refreshUser = useCallback(async () => {
     try {
-      const res = await api.get<User>("/user/info");
-      setUser(res.data);
+      await fetchCurrentUser();
     } catch {
       setUser(null);
     }
-  }, []);
+  }, [fetchCurrentUser]);
 
   const login = useCallback(
     async (req: LoginRequest) => {
@@ -62,11 +67,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const accessToken = res.data.accessToken;
       sessionStorage.setItem("accessToken", accessToken);
       setToken(accessToken);
-      await refreshUser();
+      try {
+        await fetchCurrentUser();
+      } catch {
+        sessionStorage.removeItem("accessToken");
+        setToken(null);
+        setUser(null);
+        throw new Error("failed to bootstrap user");
+      }
       startKeepAlive();
       router.push("/users");
     },
-    [refreshUser, startKeepAlive, router]
+    [fetchCurrentUser, startKeepAlive, router]
   );
 
   const logout = useCallback(async () => {
@@ -95,6 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .catch(() => {
           sessionStorage.removeItem("accessToken");
           setToken(null);
+          setUser(null);
         })
         .finally(() => setIsLoading(false));
     } else {

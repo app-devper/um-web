@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import type { System, CreateSystemRequest, UpdateSystemRequest, AppError } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,8 +26,11 @@ import { toast } from "sonner";
 import { CreateSystemDialog, EditSystemDialog } from "@/components/system-form-dialog";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import axios from "axios";
+import { useRouter } from "next/navigation";
 
 export default function SystemsPage() {
+  const { user, isLoading: authLoading } = useAuth();
+  const router = useRouter();
   const [systems, setSystems] = useState<System[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -49,8 +53,19 @@ export default function SystemsPage() {
   }, []);
 
   useEffect(() => {
+    if (!authLoading && user && user.role !== "SUPER") {
+      router.replace("/users");
+      return;
+    }
+    if (authLoading || user?.role !== "SUPER") {
+      return;
+    }
     fetchSystems();
-  }, [fetchSystems]);
+  }, [authLoading, fetchSystems, router, user]);
+
+  if (authLoading || user?.role !== "SUPER") {
+    return null;
+  }
 
   const handleError = (err: unknown) => {
     if (axios.isAxiosError(err) && err.response?.data) {

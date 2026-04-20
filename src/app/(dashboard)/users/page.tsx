@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import type { User, CreateUserRequest, UpdateUserRequest, AppError } from "@/types";
+import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -27,6 +28,7 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import axios from "axios";
 
 export default function UsersPage() {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -155,6 +157,62 @@ export default function UsersPage() {
     }
   };
 
+  const getAllowedRoleOptions = (targetUser: User): ("SUPER" | "ADMIN" | "USER")[] => {
+    if (!currentUser) return [];
+    if (currentUser.role === "SUPER") {
+      return targetUser.role === "SUPER" ? [] : ["SUPER", "ADMIN", "USER"];
+    }
+    if (currentUser.role === "ADMIN" && targetUser.role === "USER" && targetUser.clientId === currentUser.clientId) {
+      return ["ADMIN", "USER"];
+    }
+    return [];
+  };
+
+  const getAvailableActions = (targetUser: User) => {
+    if (!currentUser) {
+      return {
+        canEdit: false,
+        canSetPassword: false,
+        canChangeStatus: false,
+        canDelete: false,
+        roleOptions: [] as ("SUPER" | "ADMIN" | "USER")[],
+      };
+    }
+
+    const isSelf = currentUser.id === targetUser.id;
+    const roleOptions = getAllowedRoleOptions(targetUser);
+
+    if (currentUser.role === "SUPER") {
+      const canManageTarget = targetUser.role !== "SUPER";
+      return {
+        canEdit: isSelf || canManageTarget,
+        canSetPassword: canManageTarget,
+        canChangeStatus: canManageTarget,
+        canDelete: canManageTarget && !isSelf,
+        roleOptions,
+      };
+    }
+
+    if (currentUser.role === "ADMIN") {
+      const canManageTarget = targetUser.role === "USER" && targetUser.clientId === currentUser.clientId;
+      return {
+        canEdit: isSelf || canManageTarget,
+        canSetPassword: canManageTarget,
+        canChangeStatus: canManageTarget,
+        canDelete: canManageTarget && !isSelf,
+        roleOptions,
+      };
+    }
+
+    return {
+      canEdit: false,
+      canSetPassword: false,
+      canChangeStatus: false,
+      canDelete: false,
+      roleOptions,
+    };
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -195,7 +253,16 @@ export default function UsersPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              users.map((user) => (
+              users.map((user) => {
+                const actions = getAvailableActions(user);
+                const hasAnyAction =
+                  actions.canEdit ||
+                  actions.canSetPassword ||
+                  actions.canChangeStatus ||
+                  actions.canDelete ||
+                  actions.roleOptions.length > 0;
+
+                return (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">
                     {user.firstName} {user.lastName}
@@ -224,6 +291,7 @@ export default function UsersPage() {
                   </TableCell>
                   <TableCell className="text-muted-foreground">{user.email}</TableCell>
                   <TableCell>
+                    {hasAnyAction ? (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -231,6 +299,7 @@ export default function UsersPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        {actions.canEdit ? (
                         <DropdownMenuItem
                           onClick={() => {
                             setEditUser(user);
@@ -240,6 +309,8 @@ export default function UsersPage() {
                           <Pencil className="mr-2 h-4 w-4" />
                           Edit
                         </DropdownMenuItem>
+                        ) : null}
+                        {actions.canSetPassword ? (
                         <DropdownMenuItem
                           onClick={() => {
                             setPasswordUser(user);
@@ -249,8 +320,9 @@ export default function UsersPage() {
                           <Key className="mr-2 h-4 w-4" />
                           Set Password
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        {(["SUPER", "ADMIN", "USER"] as const).map((role) => (
+                        ) : null}
+                        {actions.canSetPassword || actions.canEdit ? (actions.roleOptions.length > 0 ? <DropdownMenuSeparator /> : null) : null}
+                        {actions.roleOptions.map((role) => (
                           <DropdownMenuItem
                             key={role}
                             disabled={user.role === role}
@@ -264,7 +336,8 @@ export default function UsersPage() {
                             Set {role}
                           </DropdownMenuItem>
                         ))}
-                        <DropdownMenuSeparator />
+                        {actions.roleOptions.length > 0 && actions.canChangeStatus ? <DropdownMenuSeparator /> : null}
+                        {actions.canChangeStatus ? (
                         <DropdownMenuItem
                           onClick={() => {
                             setStatusUser(user);
@@ -274,7 +347,9 @@ export default function UsersPage() {
                           <ToggleLeft className="mr-2 h-4 w-4" />
                           {user.status === "ACTIVE" ? "Deactivate" : "Activate"}
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
+                        ) : null}
+                        {actions.canChangeStatus && actions.canDelete ? <DropdownMenuSeparator /> : null}
+                        {actions.canDelete ? (
                         <DropdownMenuItem
                           className="text-destructive"
                           onClick={() => {
@@ -285,11 +360,14 @@ export default function UsersPage() {
                           <Trash2 className="mr-2 h-4 w-4" />
                           Delete
                         </DropdownMenuItem>
+                        ) : null}
                       </DropdownMenuContent>
                     </DropdownMenu>
+                    ) : null}
                   </TableCell>
                 </TableRow>
-              ))
+                );
+              })
             )}
           </TableBody>
         </Table>

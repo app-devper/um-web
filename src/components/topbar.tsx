@@ -19,6 +19,7 @@ const navItems = [
 export function Topbar() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
+  const visibleNavItems = navItems.filter((item) => item.href !== "/systems" || user?.role === "SUPER");
 
   const initials = user
     ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase() || user.username[0].toUpperCase()
@@ -40,7 +41,7 @@ export function Topbar() {
               <span>User Management</span>
             </div>
             <nav className="p-3 space-y-1">
-              {navItems.map((item) => (
+              {visibleNavItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
