@@ -3,13 +3,15 @@ export interface AppError {
   message: string;
 }
 
+export type Role = "SUPER" | "ADMIN" | "MANAGER" | "USER";
+
 export interface User {
   id: string;
   firstName: string;
   lastName: string;
   username: string;
   clientId: string;
-  role: "SUPER" | "ADMIN" | "USER";
+  role: Role;
   status: "ACTIVE" | "INACTIVE";
   phone: string;
   email: string;
@@ -27,6 +29,7 @@ export interface CreateUserRequest {
   username: string;
   password: string;
   clientId: string;
+  role?: Role;
 }
 
 export interface UpdateUserRequest {
@@ -46,7 +49,7 @@ export interface SetPasswordRequest {
 }
 
 export interface UpdateRoleRequest {
-  role: "SUPER" | "ADMIN" | "USER";
+  role: Role;
 }
 
 export interface UpdateStatusRequest {

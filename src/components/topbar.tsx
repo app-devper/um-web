@@ -10,10 +10,10 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Users, Server, UserCircle, Shield } from "lucide-react";
 
-type NavItem = { href: string; label: string; icon: typeof Users; roles?: ("SUPER" | "ADMIN" | "USER")[] };
+type NavItem = { href: string; label: string; icon: typeof Users; roles?: ("SUPER" | "ADMIN" | "MANAGER" | "USER")[] };
 
 const navItems: NavItem[] = [
-  { href: "/users", label: "Users", icon: Users, roles: ["SUPER", "ADMIN"] },
+  { href: "/users", label: "Users", icon: Users, roles: ["SUPER", "ADMIN", "MANAGER"] },
   { href: "/systems", label: "Systems", icon: Server, roles: ["SUPER"] },
   { href: "/profile", label: "Profile", icon: UserCircle },
 ];

@@ -60,16 +60,19 @@ export default function UsersPage() {
     }
   }, []);
 
+  const isViewer = currentUser?.role === "MANAGER";
+  const canManageUsers = currentUser?.role === "SUPER" || currentUser?.role === "ADMIN";
+
   useEffect(() => {
     if (authLoading) return;
-    if (currentUser && currentUser.role !== "SUPER" && currentUser.role !== "ADMIN") {
+    if (currentUser && !canManageUsers && !isViewer) {
       router.replace("/profile");
       return;
     }
     fetchUsers();
-  }, [authLoading, currentUser, fetchUsers, router]);
+  }, [authLoading, currentUser, canManageUsers, isViewer, fetchUsers, router]);
 
-  if (authLoading || (currentUser && currentUser.role !== "SUPER" && currentUser.role !== "ADMIN")) {
+  if (authLoading || (currentUser && !canManageUsers && !isViewer)) {
     return null;
   }
 
@@ -168,13 +171,20 @@ export default function UsersPage() {
     }
   };
 
-  const getAllowedRoleOptions = (targetUser: User): ("SUPER" | "ADMIN" | "USER")[] => {
+  type AssignableRole = "ADMIN" | "MANAGER" | "USER";
+
+  const getAllowedRoleOptions = (targetUser: User): AssignableRole[] => {
     if (!currentUser) return [];
+    // SUPER option is intentionally hidden from UI — SUPER must be bootstrapped directly.
     if (currentUser.role === "SUPER") {
-      return targetUser.role === "SUPER" ? [] : ["SUPER", "ADMIN", "USER"];
+      return targetUser.role === "SUPER" ? [] : ["ADMIN", "MANAGER", "USER"];
     }
-    if (currentUser.role === "ADMIN" && targetUser.role === "USER" && targetUser.clientId === currentUser.clientId) {
-      return ["ADMIN", "USER"];
+    if (
+      currentUser.role === "ADMIN" &&
+      targetUser.clientId === currentUser.clientId &&
+      (targetUser.role === "MANAGER" || targetUser.role === "USER")
+    ) {
+      return ["MANAGER", "USER"];
     }
     return [];
   };
@@ -186,7 +196,7 @@ export default function UsersPage() {
         canSetPassword: false,
         canChangeStatus: false,
         canDelete: false,
-        roleOptions: [] as ("SUPER" | "ADMIN" | "USER")[],
+        roleOptions: [] as AssignableRole[],
       };
     }
 
@@ -205,7 +215,9 @@ export default function UsersPage() {
     }
 
     if (currentUser.role === "ADMIN") {
-      const canManageTarget = targetUser.role === "USER" && targetUser.clientId === currentUser.clientId;
+      const canManageTarget =
+        (targetUser.role === "USER" || targetUser.role === "MANAGER") &&
+        targetUser.clientId === currentUser.clientId;
       return {
         canEdit: isSelf || canManageTarget,
         canSetPassword: canManageTarget,
@@ -215,6 +227,7 @@ export default function UsersPage() {
       };
     }
 
+    // MANAGER and USER: read-only
     return {
       canEdit: false,
       canSetPassword: false,
@@ -231,10 +244,12 @@ export default function UsersPage() {
           <h1 className="text-2xl font-bold">Users</h1>
           <p className="text-sm text-muted-foreground">Manage user accounts</p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add User
-        </Button>
+        {canManageUsers && (
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add User
+          </Button>
+        )}
       </div>
 
       <div className="rounded-md border">
@@ -384,7 +399,13 @@ export default function UsersPage() {
         </Table>
       </div>
 
-      <CreateUserDialog open={createOpen} onOpenChange={setCreateOpen} onSubmit={handleCreate} loading={actionLoading} />
+      <CreateUserDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onSubmit={handleCreate}
+        loading={actionLoading}
+        callerRole={currentUser?.role}
+      />
       <EditUserDialog open={editOpen} onOpenChange={setEditOpen} user={editUser} onSubmit={handleEdit} loading={actionLoading} />
       <SetPasswordDialog open={passwordOpen} onOpenChange={setPasswordOpen} user={passwordUser} onSubmit={handleSetPassword} loading={actionLoading} />
 

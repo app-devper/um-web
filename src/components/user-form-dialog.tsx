@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,14 +11,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { User, CreateUserRequest, UpdateUserRequest } from "@/types";
+import type { User, CreateUserRequest, UpdateUserRequest, Role } from "@/types";
 
 interface CreateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: CreateUserRequest) => Promise<void>;
   loading?: boolean;
+  callerRole?: Role;
 }
+
+type CreatableRole = "ADMIN" | "MANAGER" | "USER";
 
 const emptyCreateForm: CreateUserRequest = {
   firstName: "",
@@ -28,14 +31,22 @@ const emptyCreateForm: CreateUserRequest = {
   username: "",
   password: "",
   clientId: "",
+  role: "USER",
 };
 
-export function CreateUserDialog({ open, onOpenChange, onSubmit, loading }: CreateDialogProps) {
-  const [form, setForm] = useState<CreateUserRequest>(emptyCreateForm);
+export function CreateUserDialog({ open, onOpenChange, onSubmit, loading, callerRole }: CreateDialogProps) {
+  const roleOptions = useMemo<CreatableRole[]>(() => {
+    if (callerRole === "SUPER") return ["ADMIN", "MANAGER", "USER"];
+    if (callerRole === "ADMIN") return ["MANAGER", "USER"];
+    return [];
+  }, [callerRole]);
+
+  const defaultRole: CreatableRole = callerRole === "SUPER" ? "ADMIN" : "USER";
+  const [form, setForm] = useState<CreateUserRequest>({ ...emptyCreateForm, role: defaultRole });
 
   useEffect(() => {
-    if (open) setForm(emptyCreateForm);
-  }, [open]);
+    if (open) setForm({ ...emptyCreateForm, role: defaultRole });
+  }, [open, defaultRole]);
 
   const handleChange = (field: keyof CreateUserRequest, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -75,6 +86,23 @@ export function CreateUserDialog({ open, onOpenChange, onSubmit, loading }: Crea
             <Label htmlFor="c-clientId">Client ID *</Label>
             <Input id="c-clientId" value={form.clientId} onChange={(e) => handleChange("clientId", e.target.value)} required minLength={3} maxLength={3} placeholder="3 characters" />
           </div>
+          {roleOptions.length > 1 && (
+            <div className="space-y-1">
+              <Label htmlFor="c-role">Role *</Label>
+              <select
+                id="c-role"
+                value={form.role}
+                onChange={(e) => handleChange("role", e.target.value)}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                {roleOptions.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label htmlFor="c-email">Email</Label>
