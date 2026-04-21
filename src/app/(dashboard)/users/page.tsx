@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
-import type { User, CreateUserRequest, UpdateUserRequest, AppError } from "@/types";
+import type { User, CreateUserRequest, UpdateUserRequest, AppError, Role } from "@/types";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,7 +45,7 @@ export default function UsersPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [roleUser, setRoleUser] = useState<User | null>(null);
   const [roleOpen, setRoleOpen] = useState(false);
-  const [pendingRole, setPendingRole] = useState<"SUPER" | "ADMIN" | "USER">("USER");
+  const [pendingRole, setPendingRole] = useState<Role>("USER");
   const [statusUser, setStatusUser] = useState<User | null>(null);
   const [statusOpen, setStatusOpen] = useState(false);
 
