@@ -1,12 +1,12 @@
 import axios from "axios";
 
-const baseURL = process.env.NEXT_PUBLIC_API_URL;
-if (!baseURL) {
+const apiHost = process.env.NEXT_PUBLIC_API_URL;
+if (!apiHost) {
   throw new Error("NEXT_PUBLIC_API_URL is not set");
 }
 
 const api = axios.create({
-  baseURL,
+  baseURL: `${apiHost.replace(/\/$/, "")}/api/um/v1`,
   headers: {
     "Content-Type": "application/json",
   },
