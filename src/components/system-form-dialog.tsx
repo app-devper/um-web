@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -87,14 +87,17 @@ export function EditSystemDialog({ open, onOpenChange, system, onSubmit, loading
     host: "",
   });
 
-  useEffect(() => {
+  const [prevSystem, setPrevSystem] = useState(system);
+
+  if (system !== prevSystem) {
+    setPrevSystem(system);
     if (system) {
       setForm({
         systemName: system.systemName || "",
         host: system.host || "",
       });
     }
-  }, [system]);
+  }
 
   const handleChange = (field: keyof UpdateSystemRequest, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
