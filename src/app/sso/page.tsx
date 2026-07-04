@@ -14,31 +14,28 @@ export default function SSOExchangePage() {
   const [message, setMessage] = useState<string>("");
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const ticket = params.get("ticket");
-    const returnTo = params.get("return") || "/profile";
-    const safeReturn = returnTo.startsWith("/") ? returnTo : "/profile";
-
-    if (!ticket) {
-      setStatus("error");
-      setMessage("Missing ticket");
-      return;
-    }
-
     let cancelled = false;
-    (async () => {
+    const exchangeTicket = async (): Promise<string | null> => {
+      const params = new URLSearchParams(window.location.search);
+      const ticket = params.get("ticket");
+      const returnTo = params.get("return") || "/profile";
+      const safeReturn = returnTo.startsWith("/") ? returnTo : "/profile";
+      if (!ticket) return "Missing ticket";
       try {
         const res = await api.post<LoginResponse>("/auth/exchange", { ticket });
-        if (cancelled) return;
+        if (cancelled) return null;
         sessionStorage.setItem("accessToken", res.data.accessToken);
         window.location.replace(safeReturn);
+        return null;
       } catch {
-        if (cancelled) return;
-        setStatus("error");
-        setMessage("Session handoff failed. The link may have expired.");
+        return "Session handoff failed. The link may have expired.";
       }
-    })();
-
+    };
+    exchangeTicket().then((error) => {
+      if (cancelled || !error) return;
+      setStatus("error");
+      setMessage(error);
+    });
     return () => {
       cancelled = true;
     };
