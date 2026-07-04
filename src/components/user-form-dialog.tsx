@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -43,10 +43,12 @@ export function CreateUserDialog({ open, onOpenChange, onSubmit, loading, caller
 
   const defaultRole: CreatableRole = callerRole === "SUPER" ? "ADMIN" : "USER";
   const [form, setForm] = useState<CreateUserRequest>({ ...emptyCreateForm, role: defaultRole });
+  const [prevOpen, setPrevOpen] = useState(open);
 
-  useEffect(() => {
+  if (open !== prevOpen) {
+    setPrevOpen(open);
     if (open) setForm({ ...emptyCreateForm, role: defaultRole });
-  }, [open, defaultRole]);
+  }
 
   const handleChange = (field: keyof CreateUserRequest, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -139,7 +141,10 @@ export function EditUserDialog({ open, onOpenChange, user, onSubmit, loading }: 
     email: "",
   });
 
-  useEffect(() => {
+  const [prevUser, setPrevUser] = useState(user);
+
+  if (user !== prevUser) {
+    setPrevUser(user);
     if (user) {
       setForm({
         firstName: user.firstName || "",
@@ -148,7 +153,7 @@ export function EditUserDialog({ open, onOpenChange, user, onSubmit, loading }: 
         email: user.email || "",
       });
     }
-  }, [user]);
+  }
 
   const handleChange = (field: keyof UpdateUserRequest, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -204,10 +209,12 @@ interface SetPasswordDialogProps {
 
 export function SetPasswordDialog({ open, onOpenChange, user, onSubmit, loading }: SetPasswordDialogProps) {
   const [password, setPassword] = useState("");
+  const [prevOpen, setPrevOpen] = useState(open);
 
-  useEffect(() => {
+  if (open !== prevOpen) {
+    setPrevOpen(open);
     if (open) setPassword("");
-  }, [open]);
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

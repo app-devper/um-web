@@ -96,24 +96,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [clearKeepAlive, router]);
 
   useEffect(() => {
-    const stored = sessionStorage.getItem("accessToken");
-    if (stored) {
-      setToken(stored);
-      api
-        .get<User>("/user/info")
-        .then((res) => {
-          setUser(res.data);
+    const restoreSession = async () => {
+      const stored = sessionStorage.getItem("accessToken");
+      if (!stored) return null;
+      const res = await api.get<User>("/user/info");
+      return { stored, user: res.data };
+    };
+    restoreSession()
+      .then((session) => {
+        if (session) {
+          setToken(session.stored);
+          setUser(session.user);
           startKeepAlive();
-        })
-        .catch(() => {
-          sessionStorage.removeItem("accessToken");
-          setToken(null);
-          setUser(null);
-        })
-        .finally(() => setIsLoading(false));
-    } else {
-      setIsLoading(false);
-    }
+        }
+      })
+      .catch(() => {
+        sessionStorage.removeItem("accessToken");
+        setToken(null);
+        setUser(null);
+      })
+      .finally(() => setIsLoading(false));
     return () => clearKeepAlive();
   }, [startKeepAlive, clearKeepAlive]);
 
