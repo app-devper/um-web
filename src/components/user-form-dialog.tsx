@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -18,10 +18,9 @@ interface CreateDialogProps {
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: CreateUserRequest) => Promise<void>;
   loading?: boolean;
-  callerRole?: Role;
+  /** Roles UM lets the Actor create (GET /user/rules). */
+  roleOptions: Role[];
 }
-
-type CreatableRole = "ADMIN" | "MANAGER" | "USER";
 
 const emptyCreateForm: CreateUserRequest = {
   firstName: "",
@@ -34,14 +33,8 @@ const emptyCreateForm: CreateUserRequest = {
   role: "USER",
 };
 
-export function CreateUserDialog({ open, onOpenChange, onSubmit, loading, callerRole }: CreateDialogProps) {
-  const roleOptions = useMemo<CreatableRole[]>(() => {
-    if (callerRole === "SUPER") return ["ADMIN", "MANAGER", "USER"];
-    if (callerRole === "ADMIN") return ["MANAGER", "USER"];
-    return [];
-  }, [callerRole]);
-
-  const defaultRole: CreatableRole = callerRole === "SUPER" ? "ADMIN" : "USER";
+export function CreateUserDialog({ open, onOpenChange, onSubmit, loading, roleOptions }: CreateDialogProps) {
+  const defaultRole: Role = roleOptions.includes("ADMIN") ? "ADMIN" : roleOptions.includes("USER") ? "USER" : roleOptions[0] ?? "USER";
   const [form, setForm] = useState<CreateUserRequest>({ ...emptyCreateForm, role: defaultRole });
   const [prevOpen, setPrevOpen] = useState(open);
 

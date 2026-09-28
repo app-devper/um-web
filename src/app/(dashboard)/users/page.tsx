@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
-import type { User, CreateUserRequest, UpdateUserRequest, AppError, Role } from "@/types";
+import type { User, ManagedUser, UserRules, CreateUserRequest, UpdateUserRequest, AppError, Role } from "@/types";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,10 +28,14 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 
+// SUPER is never offered in the UI; it is bootstrapped directly.
+const offerable = (roles: Role[] | undefined) => (roles ?? []).filter((r) => r !== "SUPER");
+
 export default function UsersPage() {
   const { user: currentUser, isLoading: authLoading } = useAuth();
   const router = useRouter();
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<ManagedUser[]>([]);
+  const [creatableRoles, setCreatableRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -51,8 +55,12 @@ export default function UsersPage() {
 
   const fetchUsers = useCallback(async () => {
     try {
-      const res = await api.get<User[]>("/user");
+      const [res, rules] = await Promise.all([
+        api.get<ManagedUser[]>("/user"),
+        api.get<UserRules>("/user/rules"),
+      ]);
       setUsers(res.data || []);
+      setCreatableRoles(offerable(rules.data?.creatableRoles));
     } catch {
       toast.error("Failed to fetch users");
     } finally {
@@ -171,69 +179,15 @@ export default function UsersPage() {
     }
   };
 
-  type AssignableRole = "ADMIN" | "MANAGER" | "USER";
-
-  const getAllowedRoleOptions = (targetUser: User): AssignableRole[] => {
-    if (!currentUser) return [];
-    // SUPER option is intentionally hidden from UI — SUPER must be bootstrapped directly.
-    if (currentUser.role === "SUPER") {
-      return targetUser.role === "SUPER" ? [] : ["ADMIN", "MANAGER", "USER"];
-    }
-    if (
-      currentUser.role === "ADMIN" &&
-      targetUser.clientId === currentUser.clientId &&
-      (targetUser.role === "MANAGER" || targetUser.role === "USER")
-    ) {
-      return ["MANAGER", "USER"];
-    }
-    return [];
-  };
-
-  const getAvailableActions = (targetUser: User) => {
-    if (!currentUser) {
-      return {
-        canEdit: false,
-        canSetPassword: false,
-        canChangeStatus: false,
-        canDelete: false,
-        roleOptions: [] as AssignableRole[],
-      };
-    }
-
-    const isSelf = currentUser.id === targetUser.id;
-    const roleOptions = getAllowedRoleOptions(targetUser);
-
-    if (currentUser.role === "SUPER") {
-      const canManageTarget = targetUser.role !== "SUPER";
-      return {
-        canEdit: isSelf || canManageTarget,
-        canSetPassword: canManageTarget,
-        canChangeStatus: canManageTarget,
-        canDelete: canManageTarget && !isSelf,
-        roleOptions,
-      };
-    }
-
-    if (currentUser.role === "ADMIN") {
-      const canManageTarget =
-        (targetUser.role === "USER" || targetUser.role === "MANAGER") &&
-        targetUser.clientId === currentUser.clientId;
-      return {
-        canEdit: isSelf || canManageTarget,
-        canSetPassword: canManageTarget,
-        canChangeStatus: canManageTarget,
-        canDelete: canManageTarget && !isSelf,
-        roleOptions,
-      };
-    }
-
-    // MANAGER and USER: read-only
+  /** What UM says the signed-in Actor may do to this user (um-api ADR-0006). */
+  const getAvailableActions = (targetUser: ManagedUser) => {
+    const can = targetUser.can;
     return {
-      canEdit: false,
-      canSetPassword: false,
-      canChangeStatus: false,
-      canDelete: false,
-      roleOptions,
+      canEdit: !!can?.edit,
+      canSetPassword: !!can?.setPassword,
+      canChangeStatus: !!can?.setStatus,
+      canDelete: !!can?.delete,
+      roleOptions: can?.setRole ? offerable(can.assignableRoles) : [],
     };
   };
 
@@ -244,7 +198,7 @@ export default function UsersPage() {
           <h1 className="text-2xl font-bold">Users</h1>
           <p className="text-sm text-muted-foreground">Manage user accounts</p>
         </div>
-        {canManageUsers && (
+        {creatableRoles.length > 0 && (
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Add User
@@ -404,7 +358,7 @@ export default function UsersPage() {
         onOpenChange={setCreateOpen}
         onSubmit={handleCreate}
         loading={actionLoading}
-        callerRole={currentUser?.role}
+        roleOptions={creatableRoles}
       />
       <EditUserDialog open={editOpen} onOpenChange={setEditOpen} user={editUser} onSubmit={handleEdit} loading={actionLoading} />
       <SetPasswordDialog open={passwordOpen} onOpenChange={setPasswordOpen} user={passwordUser} onSubmit={handleSetPassword} loading={actionLoading} />
