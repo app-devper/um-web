@@ -21,6 +21,25 @@ export interface User {
   updatedDate: string;
 }
 
+/** What the signed-in Actor may do to one user, as UM decides it (um-api ADR-0006). */
+export interface UserPermissions {
+  edit: boolean;
+  delete: boolean;
+  setStatus: boolean;
+  setRole: boolean;
+  setPassword: boolean;
+  unlock: boolean;
+  assignableRoles: Role[];
+}
+
+/** A listed user with what the Actor may do to it. */
+export type ManagedUser = User & { can?: UserPermissions };
+
+/** What the Actor may do beyond individual users. */
+export interface UserRules {
+  creatableRoles: Role[];
+}
+
 export interface CreateUserRequest {
   firstName: string;
   lastName: string;
