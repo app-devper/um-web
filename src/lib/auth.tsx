@@ -2,13 +2,15 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import api from "@/lib/api";
-import type { LoginRequest, LoginResponse, User } from "@/types";
+import type { LoginRequest, LoginResponse, User, PasskeyOptions } from "@/types";
+import { getPasskey } from "@/lib/passkey";
 import { useRouter } from "next/navigation";
 
 interface AuthContextType {
   token: string | null;
   user: User | null;
   login: (req: LoginRequest) => Promise<void>;
+  loginWithPasskey: (system: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   isLoading: boolean;
@@ -61,10 +63,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [fetchCurrentUser]);
 
-  const login = useCallback(
-    async (req: LoginRequest) => {
-      const res = await api.post<LoginResponse>("/auth/login", req);
-      const accessToken = res.data.accessToken;
+  const startSession = useCallback(
+    async (accessToken: string) => {
       sessionStorage.setItem("accessToken", accessToken);
       setToken(accessToken);
       let loggedInUser: User;
@@ -80,6 +80,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       router.push(loggedInUser.role === "USER" ? "/profile" : "/users");
     },
     [fetchCurrentUser, startKeepAlive, router]
+  );
+
+  const login = useCallback(
+    async (req: LoginRequest) => {
+      const res = await api.post<LoginResponse>("/auth/login", req);
+      await startSession(res.data.accessToken);
+    },
+    [startSession]
+  );
+
+  const loginWithPasskey = useCallback(
+    async (system: string) => {
+      const options = await api.post<PasskeyOptions>("/auth/passkey/login/options", { system });
+      const credential = await getPasskey(options.data);
+      const res = await api.post<LoginResponse>("/auth/passkey/login", {
+        ceremonyId: options.data.ceremonyId,
+        credential,
+      });
+      await startSession(res.data.accessToken);
+    },
+    [startSession]
   );
 
   const logout = useCallback(async () => {
@@ -120,7 +141,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [startKeepAlive, clearKeepAlive]);
 
   return (
-    <AuthContext.Provider value={{ token, user, login, logout, refreshUser, isLoading }}>
+    <AuthContext.Provider value={{ token, user, login, loginWithPasskey, logout, refreshUser, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
