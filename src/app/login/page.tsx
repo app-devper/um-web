@@ -1,18 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Shield } from "lucide-react";
+import { KeyRound, Shield } from "lucide-react";
 import axios from "axios";
 import type { AppError } from "@/types";
+import { PasskeyError, passkeyFailureMessage, passkeysSupported } from "@/lib/passkey";
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, loginWithPasskey } = useAuth();
+  const [passkeyAvailable, setPasskeyAvailable] = useState(false);
+
+  useEffect(() => {
+    setPasskeyAvailable(passkeysSupported());
+  }, []);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [system, setSystem] = useState("SM");
@@ -31,6 +37,24 @@ export default function LoginPage() {
         } else {
           toast.error(data.message || "Login failed");
         }
+      } else {
+        toast.error("Network error. Please try again.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasskey = async () => {
+    setLoading(true);
+    try {
+      await loginWithPasskey(system);
+    } catch (err) {
+      if (err instanceof PasskeyError) {
+        toast.error(passkeyFailureMessage(err.kind));
+      } else if (axios.isAxiosError(err) && err.response?.data) {
+        const data = err.response.data as AppError;
+        toast.error(err.response.status === 429 ? "Too many attempts. Please try again later." : data.message || "Passkey sign-in failed");
       } else {
         toast.error("Network error. Please try again.");
       }
@@ -87,6 +111,19 @@ export default function LoginPage() {
               {loading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
+          {passkeyAvailable && (
+            <div className="mt-4 space-y-4">
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <span className="h-px flex-1 bg-border" />
+                or
+                <span className="h-px flex-1 bg-border" />
+              </div>
+              <Button type="button" variant="outline" className="w-full" onClick={handlePasskey} disabled={loading}>
+                <KeyRound className="mr-2 h-4 w-4" />
+                Sign in with a passkey
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -23,7 +23,8 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const passkeyLogin = String(error.config?.url ?? "").startsWith("/auth/passkey/");
+    if (error.response?.status === 401 && !passkeyLogin) {
       if (typeof window !== "undefined") {
         sessionStorage.removeItem("accessToken");
         window.location.href = "/login";
