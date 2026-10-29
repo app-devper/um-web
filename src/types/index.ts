@@ -114,3 +114,15 @@ export interface UpdateSystemRequest {
   systemName: string;
   host: string;
 }
+
+export interface PasskeyOptions {
+  ceremonyId: string;
+  options: { publicKey: Record<string, unknown> };
+}
+
+export interface Passkey {
+  id: string;
+  name: string;
+  createdDate: string;
+  lastUsedDate?: string;
+}

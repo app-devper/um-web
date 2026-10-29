@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { PasskeysCard } from "@/components/passkeys-card";
 import { toast } from "sonner";
 import axios from "axios";
 import { Monitor, Smartphone, Trash2 } from "lucide-react";
@@ -303,6 +304,10 @@ export default function ProfilePage() {
           </form>
         </CardContent>
       </Card>
+
+      <Separator />
+
+      <PasskeysCard />
 
       <Separator />
 
