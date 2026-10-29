@@ -63,7 +63,7 @@ export function CreateSystemDialog({ open, onOpenChange, onSubmit, loading }: Cr
           <div className="space-y-1">
             <Label htmlFor="cs-host">Host *</Label>
             <Input id="cs-host" value={form.host} onChange={(e) => handleChange("host", e.target.value)} required placeholder="https://example.com" />
-            <p className="text-xs text-muted-foreground">The system's API address.</p>
+            <p className="text-xs text-muted-foreground">The system&apos;s API address.</p>
           </div>
           <div className="space-y-1">
             <Label htmlFor="cs-web-url">Web URL</Label>
@@ -131,7 +131,7 @@ export function EditSystemDialog({ open, onOpenChange, system, onSubmit, loading
           <div className="space-y-1">
             <Label htmlFor="es-host">Host *</Label>
             <Input id="es-host" value={form.host} onChange={(e) => handleChange("host", e.target.value)} required />
-            <p className="text-xs text-muted-foreground">The system's API address.</p>
+            <p className="text-xs text-muted-foreground">The system&apos;s API address.</p>
           </div>
           <div className="space-y-1">
             <Label htmlFor="es-web-url">Web URL</Label>
