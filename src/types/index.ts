@@ -126,3 +126,14 @@ export interface Passkey {
   createdDate: string;
   lastUsedDate?: string;
 }
+
+export interface LaunchableSystem {
+  systemCode: string;
+  systemName: string;
+  host: string;
+}
+
+export interface SSOTicket {
+  ticket: string;
+  expiresIn: number;
+}
