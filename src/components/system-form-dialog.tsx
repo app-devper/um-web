@@ -26,6 +26,7 @@ export function CreateSystemDialog({ open, onOpenChange, onSubmit, loading }: Cr
     systemName: "",
     systemCode: "",
     host: "",
+    webUrl: "",
   });
 
   const handleChange = (field: keyof CreateSystemRequest, value: string) => {
@@ -35,7 +36,7 @@ export function CreateSystemDialog({ open, onOpenChange, onSubmit, loading }: Cr
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await onSubmit(form);
-    setForm({ clientId: "", systemName: "", systemCode: "", host: "" });
+    setForm({ clientId: "", systemName: "", systemCode: "", host: "", webUrl: "" });
   };
 
   return (
@@ -62,6 +63,12 @@ export function CreateSystemDialog({ open, onOpenChange, onSubmit, loading }: Cr
           <div className="space-y-1">
             <Label htmlFor="cs-host">Host *</Label>
             <Input id="cs-host" value={form.host} onChange={(e) => handleChange("host", e.target.value)} required placeholder="https://example.com" />
+            <p className="text-xs text-muted-foreground">The system's API address.</p>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="cs-web-url">Web URL</Label>
+            <Input id="cs-web-url" type="url" value={form.webUrl} onChange={(e) => handleChange("webUrl", e.target.value)} placeholder="https://app.devper.app" />
+            <p className="text-xs text-muted-foreground">Where users open the app. Set it to show the system on the Apps page.</p>
           </div>
           <DialogFooter>
             <Button variant="outline" type="button" onClick={() => onOpenChange(false)} disabled={loading}>Cancel</Button>
@@ -85,6 +92,7 @@ export function EditSystemDialog({ open, onOpenChange, system, onSubmit, loading
   const [form, setForm] = useState<UpdateSystemRequest>({
     systemName: "",
     host: "",
+    webUrl: "",
   });
 
   const [prevSystem, setPrevSystem] = useState(system);
@@ -95,6 +103,7 @@ export function EditSystemDialog({ open, onOpenChange, system, onSubmit, loading
       setForm({
         systemName: system.systemName || "",
         host: system.host || "",
+        webUrl: system.webUrl || "",
       });
     }
   }
@@ -122,6 +131,12 @@ export function EditSystemDialog({ open, onOpenChange, system, onSubmit, loading
           <div className="space-y-1">
             <Label htmlFor="es-host">Host *</Label>
             <Input id="es-host" value={form.host} onChange={(e) => handleChange("host", e.target.value)} required />
+            <p className="text-xs text-muted-foreground">The system's API address.</p>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="es-web-url">Web URL</Label>
+            <Input id="es-web-url" type="url" value={form.webUrl} onChange={(e) => handleChange("webUrl", e.target.value)} placeholder="https://app.devper.app" />
+            <p className="text-xs text-muted-foreground">Where users open the app. Set it to show the system on the Apps page.</p>
           </div>
           <DialogFooter>
             <Button variant="outline" type="button" onClick={() => onOpenChange(false)} disabled={loading}>Cancel</Button>

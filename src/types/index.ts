@@ -91,6 +91,7 @@ export interface System {
   systemName: string;
   systemCode: string;
   host: string;
+  webUrl?: string;
 }
 
 export interface Session {
@@ -108,11 +109,13 @@ export interface CreateSystemRequest {
   systemName: string;
   systemCode: string;
   host: string;
+  webUrl: string;
 }
 
 export interface UpdateSystemRequest {
   systemName: string;
   host: string;
+  webUrl: string;
 }
 
 export interface PasskeyOptions {
@@ -130,7 +133,7 @@ export interface Passkey {
 export interface LaunchableSystem {
   systemCode: string;
   systemName: string;
-  host: string;
+  webUrl: string;
 }
 
 export interface SSOTicket {

@@ -43,7 +43,7 @@ export default function AppsPage() {
     setOpening(system.systemCode);
     try {
       const res = await api.post<SSOTicket>("/auth/sso-ticket", { system: system.systemCode });
-      const url = launchUrl(system.host, res.data.ticket);
+      const url = launchUrl(system.webUrl, res.data.ticket);
       if (!url) {
         toast.error(`${system.systemName} has no valid address. Ask an administrator to set it.`);
         setOpening(null);
@@ -70,7 +70,7 @@ export default function AppsPage() {
             <LayoutGrid className="h-8 w-8 text-muted-foreground" aria-hidden />
             <p className="font-medium">No other systems yet</p>
             <p className="text-sm text-muted-foreground">
-              Systems appear here once your organization has them and an administrator sets their address.
+              Systems appear here once your organization has them and an administrator sets their web URL.
             </p>
           </CardContent>
         </Card>
@@ -81,7 +81,7 @@ export default function AppsPage() {
               <Card className="h-full">
                 <CardHeader>
                   <CardTitle>{system.systemName}</CardTitle>
-                  <CardDescription>{new URL(system.host).host}</CardDescription>
+                  <CardDescription>{new URL(system.webUrl).host}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Button

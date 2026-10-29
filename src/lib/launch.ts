@@ -3,11 +3,11 @@
 
 const LOOPBACK = new Set(["localhost", "127.0.0.1"]);
 
-/** The address that opens a System with a one-time ticket, or null if its host is not a safe origin. */
-export function launchUrl(host: string, ticket: string): string | null {
+/** The address that opens a System with a one-time ticket, or null if its web URL is not a safe origin. */
+export function launchUrl(webUrl: string, ticket: string): string | null {
   let url: URL;
   try {
-    url = new URL(host);
+    url = new URL(webUrl);
   } catch {
     return null;
   }
