@@ -3,17 +3,23 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import api from "@/lib/api";
 import type { LoginRequest, LoginResponse, User, PasskeyOptions } from "@/types";
-import { getPasskey } from "@/lib/passkey";
+import { getPasskey, type PasskeyRequest } from "@/lib/passkey";
 import { useRouter } from "next/navigation";
 
 interface AuthContextType {
   token: string | null;
   user: User | null;
   login: (req: LoginRequest) => Promise<void>;
-  loginWithPasskey: (system: string) => Promise<void>;
+  loginWithPasskey: (system: string, request?: PasskeyLogin) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   isLoading: boolean;
+}
+
+/** A passkey login: how to prompt, and the username typed on the form when the passkey answers. */
+export interface PasskeyLogin extends PasskeyRequest {
+  /** Read when the passkey answers; UM refuses a passkey that belongs to a different account. */
+  typedUsername?: () => string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -90,12 +96,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const loginWithPasskey = useCallback(
-    async (system: string) => {
+    async (system: string, request: PasskeyLogin = {}) => {
       const options = await api.post<PasskeyOptions>("/auth/passkey/login/options", { system });
-      const credential = await getPasskey(options.data);
+      const credential = await getPasskey(options.data, request);
+      const username = request.typedUsername?.().trim();
       const res = await api.post<LoginResponse>("/auth/passkey/login", {
         ceremonyId: options.data.ceremonyId,
         credential,
+        ...(username ? { username } : {}),
       });
       await startSession(res.data.accessToken);
     },

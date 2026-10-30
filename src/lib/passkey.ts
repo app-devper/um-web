@@ -11,7 +11,11 @@ export class PasskeyError extends Error {
 type JsonCredentialStatics = {
   parseCreationOptionsFromJSON?: (o: unknown) => PublicKeyCredentialCreationOptions;
   parseRequestOptionsFromJSON?: (o: unknown) => PublicKeyCredentialRequestOptions;
+  isConditionalMediationAvailable?: () => Promise<boolean>;
 };
+
+/** How to ask for a passkey: in the browser's modal prompt, or offered in the username field (conditional). */
+export type PasskeyRequest = { conditional?: boolean; signal?: AbortSignal };
 
 function statics(): JsonCredentialStatics | null {
   if (typeof window === "undefined" || typeof window.PublicKeyCredential !== "function") return null;
@@ -49,13 +53,25 @@ export async function createPasskey(options: PasskeyOptions): Promise<unknown> {
   }
 }
 
+/** Whether this browser can offer passkeys in the username field (WebAuthn conditional mediation). */
+export async function passkeyAutofillSupported(): Promise<boolean> {
+  const s = statics();
+  if (!s?.parseRequestOptionsFromJSON || typeof s.isConditionalMediationAvailable !== "function") return false;
+  try {
+    return await s.isConditionalMediationAvailable();
+  } catch {
+    return false;
+  }
+}
+
 /** Runs navigator.credentials.get with UM's login options and returns the assertion as JSON. */
-export async function getPasskey(options: PasskeyOptions): Promise<unknown> {
+export async function getPasskey(options: PasskeyOptions, request: PasskeyRequest = {}): Promise<unknown> {
   const s = statics();
   if (!s?.parseRequestOptionsFromJSON) throw new PasskeyError("unsupported");
   try {
     const publicKey = s.parseRequestOptionsFromJSON(options.options.publicKey);
-    return serialize(await navigator.credentials.get({ publicKey }));
+    const mediation = request.conditional ? "conditional" : undefined;
+    return serialize(await navigator.credentials.get({ publicKey, mediation, signal: request.signal }));
   } catch (error) {
     throw error instanceof PasskeyError ? error : failure(error);
   }
