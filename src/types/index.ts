@@ -91,7 +91,19 @@ export interface System {
   systemName: string;
   systemCode: string;
   host: string;
-  webUrl?: string;
+}
+
+export interface SystemCatalogEntry {
+  systemCode: string;
+  systemName: string;
+  webUrl: string;
+  host: string;
+}
+
+export interface SaveSystemCatalogEntryRequest {
+  systemName: string;
+  webUrl: string;
+  host: string;
 }
 
 export interface Session {
@@ -106,16 +118,12 @@ export interface Session {
 
 export interface CreateSystemRequest {
   clientId: string;
-  systemName: string;
   systemCode: string;
   host: string;
-  webUrl: string;
 }
 
 export interface UpdateSystemRequest {
-  systemName: string;
   host: string;
-  webUrl: string;
 }
 
 export interface PasskeyOptions {
