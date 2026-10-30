@@ -8,15 +8,9 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/s
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Users, Server, UserCircle, Shield } from "lucide-react";
+import { Shield } from "lucide-react";
+import { navItems } from "@/components/nav-items";
 
-type NavItem = { href: string; label: string; icon: typeof Users; roles?: ("SUPER" | "ADMIN" | "MANAGER" | "USER")[] };
-
-const navItems: NavItem[] = [
-  { href: "/users", label: "Users", icon: Users, roles: ["SUPER", "ADMIN", "MANAGER"] },
-  { href: "/systems", label: "Systems", icon: Server, roles: ["SUPER"] },
-  { href: "/profile", label: "Profile", icon: UserCircle },
-];
 
 export function Topbar() {
   const { user, logout } = useAuth();

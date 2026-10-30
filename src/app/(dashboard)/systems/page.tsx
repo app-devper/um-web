@@ -139,19 +139,20 @@ export default function SystemsPage() {
               <TableHead>System Code</TableHead>
               <TableHead>Client ID</TableHead>
               <TableHead>Host</TableHead>
+              <TableHead>Web URL</TableHead>
               <TableHead className="w-[50px]" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   Loading...
                 </TableCell>
               </TableRow>
             ) : systems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   No systems found
                 </TableCell>
               </TableRow>
@@ -167,6 +168,9 @@ export default function SystemsPage() {
                   </TableCell>
                   <TableCell className="text-muted-foreground max-w-[200px] truncate">
                     {sys.host}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground max-w-[200px] truncate">
+                    {sys.webUrl || "—"}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
