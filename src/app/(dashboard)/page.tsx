@@ -40,18 +40,28 @@ export default function AppsPage() {
   }, [load]);
 
   const open = async (system: LaunchableSystem) => {
+    // Open the tab during the click so the browser allows it, then send it to
+    // the ticket URL; UM stays open in this tab.
+    const tab = window.open("", "_blank");
+    if (tab) tab.opener = null;
     setOpening(system.systemCode);
     try {
       const res = await api.post<SSOTicket>("/auth/sso-ticket", { system: system.systemCode });
       const url = launchUrl(system.webUrl, res.data.ticket);
       if (!url) {
+        tab?.close();
         toast.error(`${system.systemName} has no valid address. Ask an administrator to set it.`);
-        setOpening(null);
         return;
       }
-      window.location.assign(url);
+      if (tab) {
+        tab.location.href = url;
+      } else {
+        window.location.assign(url);
+      }
     } catch (err) {
+      tab?.close();
       toast.error(errorMessage(err, `Could not open ${system.systemName}`));
+    } finally {
       setOpening(null);
     }
   };
@@ -87,7 +97,7 @@ export default function AppsPage() {
                   <Button
                     onClick={() => open(system)}
                     disabled={opening !== null}
-                    aria-label={`Open ${system.systemName}`}
+                    aria-label={`Open ${system.systemName} in a new tab`}
                   >
                     {opening === system.systemCode ? "Opening…" : "Open"}
                     <ArrowUpRight className="ml-1 h-4 w-4" aria-hidden />
