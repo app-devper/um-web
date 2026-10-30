@@ -67,9 +67,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (accessToken: string) => {
       sessionStorage.setItem("accessToken", accessToken);
       setToken(accessToken);
-      let loggedInUser: User;
       try {
-        loggedInUser = await fetchCurrentUser();
+        await fetchCurrentUser();
       } catch {
         sessionStorage.removeItem("accessToken");
         setToken(null);
@@ -77,7 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error("failed to bootstrap user");
       }
       startKeepAlive();
-      router.push(loggedInUser.role === "USER" ? "/profile" : "/users");
+      router.push("/");
     },
     [fetchCurrentUser, startKeepAlive, router]
   );
