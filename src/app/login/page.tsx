@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,20 @@ import { KeyRound, Shield } from "lucide-react";
 import axios from "axios";
 import type { AppError } from "@/types";
 import { PasskeyError, passkeyFailureMessage, passkeysSupported } from "@/lib/passkey";
+import { usePasskeyAutofill, type AutofillRequest } from "@/lib/use-passkey-autofill";
+
+const OTHER_ACCOUNT = "UM-401-006";
+
+function passkeyErrorMessage(err: unknown): string {
+  if (err instanceof PasskeyError) return passkeyFailureMessage(err.kind);
+  if (axios.isAxiosError(err) && err.response?.data) {
+    const data = err.response.data as AppError;
+    if (err.response.status === 429) return "Too many attempts. Please try again later.";
+    if (data.code === OTHER_ACCOUNT) return "That passkey belongs to a different account than the username you typed. Pick this account's passkey or clear the username.";
+    return data.message || "Passkey sign-in failed";
+  }
+  return "Network error. Please try again.";
+}
 
 export default function LoginPage() {
   const { login, loginWithPasskey } = useAuth();
@@ -23,6 +37,18 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [system, setSystem] = useState("SM");
   const [loading, setLoading] = useState(false);
+  // The passkey may answer long after the ceremony started; send the username as typed then.
+  const typedUsername = useRef("");
+  useEffect(() => {
+    typedUsername.current = username;
+  }, [username]);
+
+  const showPasskeyError = useCallback((err: unknown) => toast.error(passkeyErrorMessage(err)), []);
+  const autofillLogin = useCallback(
+    (request: AutofillRequest) => loginWithPasskey(system, { ...request, typedUsername: () => typedUsername.current }),
+    [loginWithPasskey, system]
+  );
+  const autofill = usePasskeyAutofill(passkeyAvailable, autofillLogin, showPasskeyError);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,18 +72,13 @@ export default function LoginPage() {
   };
 
   const handlePasskey = async () => {
+    autofill.pause(); // a browser runs one passkey request at a time
     setLoading(true);
     try {
-      await loginWithPasskey(system);
+      await loginWithPasskey(system, { typedUsername: () => typedUsername.current });
     } catch (err) {
-      if (err instanceof PasskeyError) {
-        toast.error(passkeyFailureMessage(err.kind));
-      } else if (axios.isAxiosError(err) && err.response?.data) {
-        const data = err.response.data as AppError;
-        toast.error(err.response.status === 429 ? "Too many attempts. Please try again later." : data.message || "Passkey sign-in failed");
-      } else {
-        toast.error("Network error. Please try again.");
-      }
+      showPasskeyError(err);
+      autofill.resume();
     } finally {
       setLoading(false);
     }
@@ -80,6 +101,7 @@ export default function LoginPage() {
               <Input
                 id="username"
                 placeholder="Enter your username"
+                autoComplete="username webauthn"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
