@@ -11,68 +11,76 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { System, CreateSystemRequest, UpdateSystemRequest } from "@/types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { System, SystemCatalogEntry, CreateSystemRequest, UpdateSystemRequest } from "@/types";
 
 interface CreateSystemDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  catalog: SystemCatalogEntry[];
   onSubmit: (data: CreateSystemRequest) => Promise<void>;
   loading?: boolean;
 }
 
-export function CreateSystemDialog({ open, onOpenChange, onSubmit, loading }: CreateSystemDialogProps) {
-  const [form, setForm] = useState<CreateSystemRequest>({
-    clientId: "",
-    systemName: "",
-    systemCode: "",
-    host: "",
-    webUrl: "",
-  });
+const emptyCreate: CreateSystemRequest = { clientId: "", systemCode: "", host: "" };
 
-  const handleChange = (field: keyof CreateSystemRequest, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+export function CreateSystemDialog({ open, onOpenChange, catalog, onSubmit, loading }: CreateSystemDialogProps) {
+  const [form, setForm] = useState<CreateSystemRequest>(emptyCreate);
+  const chosen = catalog.find((entry) => entry.systemCode === form.systemCode);
+
+  const choose = (systemCode: string) => {
+    const entry = catalog.find((e) => e.systemCode === systemCode);
+    setForm((prev) => ({ ...prev, systemCode, host: entry?.host || "" }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await onSubmit(form);
-    setForm({ clientId: "", systemName: "", systemCode: "", host: "", webUrl: "" });
+    setForm(emptyCreate);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Create System</DialogTitle>
+          <DialogTitle>Add System to a Client</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label htmlFor="cs-clientId">Client ID *</Label>
-              <Input id="cs-clientId" value={form.clientId} onChange={(e) => handleChange("clientId", e.target.value)} required />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="cs-systemCode">System Code *</Label>
-              <Input id="cs-systemCode" value={form.systemCode} onChange={(e) => handleChange("systemCode", e.target.value)} required />
-            </div>
+          <div className="space-y-1">
+            <Label htmlFor="cs-clientId">Client ID *</Label>
+            <Input id="cs-clientId" value={form.clientId} onChange={(e) => setForm((p) => ({ ...p, clientId: e.target.value }))} required />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="cs-systemName">System Name *</Label>
-            <Input id="cs-systemName" value={form.systemName} onChange={(e) => handleChange("systemName", e.target.value)} required />
+            <Label htmlFor="cs-systemCode">System *</Label>
+            <Select value={form.systemCode} onValueChange={choose}>
+              <SelectTrigger id="cs-systemCode" className="w-full">
+                <SelectValue placeholder={catalog.length ? "Choose from the catalog" : "Add a system to the catalog first"} />
+              </SelectTrigger>
+              <SelectContent>
+                {catalog.map((entry) => (
+                  <SelectItem key={entry.systemCode} value={entry.systemCode}>
+                    {entry.systemName} ({entry.systemCode})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1">
             <Label htmlFor="cs-host">Host *</Label>
-            <Input id="cs-host" value={form.host} onChange={(e) => handleChange("host", e.target.value)} required placeholder="https://example.com" />
-            <p className="text-xs text-muted-foreground">The system&apos;s API address.</p>
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="cs-web-url">Web URL</Label>
-            <Input id="cs-web-url" type="url" value={form.webUrl} onChange={(e) => handleChange("webUrl", e.target.value)} placeholder="https://app.devper.app" />
-            <p className="text-xs text-muted-foreground">Where users open the app. Set it to show the system on the Apps page.</p>
+            <Input id="cs-host" type="url" value={form.host} onChange={(e) => setForm((p) => ({ ...p, host: e.target.value }))} required placeholder="https://example.com" />
+            <p className="text-xs text-muted-foreground">
+              This client&apos;s API address{chosen?.host ? " — prefilled from the catalog, change it only if this client runs its own API" : ""}.
+            </p>
           </div>
           <DialogFooter>
             <Button variant="outline" type="button" onClick={() => onOpenChange(false)} disabled={loading}>Cancel</Button>
-            <Button type="submit" disabled={loading}>{loading ? "Creating..." : "Create"}</Button>
+            <Button type="submit" disabled={loading || !form.systemCode}>{loading ? "Adding..." : "Add"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -89,54 +97,32 @@ interface EditSystemDialogProps {
 }
 
 export function EditSystemDialog({ open, onOpenChange, system, onSubmit, loading }: EditSystemDialogProps) {
-  const [form, setForm] = useState<UpdateSystemRequest>({
-    systemName: "",
-    host: "",
-    webUrl: "",
-  });
-
+  const [host, setHost] = useState("");
   const [prevSystem, setPrevSystem] = useState(system);
 
   if (system !== prevSystem) {
     setPrevSystem(system);
-    if (system) {
-      setForm({
-        systemName: system.systemName || "",
-        host: system.host || "",
-        webUrl: system.webUrl || "",
-      });
-    }
+    if (system) setHost(system.host || "");
   }
-
-  const handleChange = (field: keyof UpdateSystemRequest, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (system) await onSubmit(system.id, form);
+    if (system) await onSubmit(system.id, { host });
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Edit System</DialogTitle>
+          <DialogTitle>
+            Edit {system?.systemName} for client {system?.clientId}
+          </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="space-y-1">
-            <Label htmlFor="es-systemName">System Name *</Label>
-            <Input id="es-systemName" value={form.systemName} onChange={(e) => handleChange("systemName", e.target.value)} required />
-          </div>
-          <div className="space-y-1">
             <Label htmlFor="es-host">Host *</Label>
-            <Input id="es-host" value={form.host} onChange={(e) => handleChange("host", e.target.value)} required />
-            <p className="text-xs text-muted-foreground">The system&apos;s API address.</p>
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="es-web-url">Web URL</Label>
-            <Input id="es-web-url" type="url" value={form.webUrl} onChange={(e) => handleChange("webUrl", e.target.value)} placeholder="https://app.devper.app" />
-            <p className="text-xs text-muted-foreground">Where users open the app. Set it to show the system on the Apps page.</p>
+            <Input id="es-host" type="url" value={host} onChange={(e) => setHost(e.target.value)} required />
+            <p className="text-xs text-muted-foreground">This client&apos;s API address. Name and web URL are set in the catalog.</p>
           </div>
           <DialogFooter>
             <Button variant="outline" type="button" onClick={() => onOpenChange(false)} disabled={loading}>Cancel</Button>
