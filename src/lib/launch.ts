@@ -21,6 +21,8 @@ const DEFAULT_RETURN = "/profile";
 /**
  * Where /sso may send the user after the exchange: a path on this origin.
  * Anything that would leave it (`//host`, `/\host`, `https://…`) falls back to the profile.
+ * A pathname that itself starts with `//` (reachable through `/..//host`) is rejected too,
+ * because the browser would read the returned string as protocol-relative.
  */
 export function safeReturnPath(requested: string | null, origin: string): string {
   if (!requested || !requested.startsWith("/")) return DEFAULT_RETURN;
@@ -30,6 +32,6 @@ export function safeReturnPath(requested: string | null, origin: string): string
   } catch {
     return DEFAULT_RETURN;
   }
-  if (url.origin !== origin) return DEFAULT_RETURN;
+  if (url.origin !== origin || url.pathname.startsWith("//")) return DEFAULT_RETURN;
   return `${url.pathname}${url.search}${url.hash}`;
 }
