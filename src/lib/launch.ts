@@ -15,3 +15,21 @@ export function launchUrl(webUrl: string, ticket: string): string | null {
   if (!secure || url.username || url.password) return null;
   return `${url.origin}/sso?ticket=${encodeURIComponent(ticket)}`;
 }
+
+const DEFAULT_RETURN = "/profile";
+
+/**
+ * Where /sso may send the user after the exchange: a path on this origin.
+ * Anything that would leave it (`//host`, `/\host`, `https://…`) falls back to the profile.
+ */
+export function safeReturnPath(requested: string | null, origin: string): string {
+  if (!requested || !requested.startsWith("/")) return DEFAULT_RETURN;
+  let url: URL;
+  try {
+    url = new URL(requested, origin);
+  } catch {
+    return DEFAULT_RETURN;
+  }
+  if (url.origin !== origin) return DEFAULT_RETURN;
+  return `${url.pathname}${url.search}${url.hash}`;
+}
