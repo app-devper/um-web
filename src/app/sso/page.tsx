@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
-import { safeReturnPath } from "@/lib/launch";
 import type { LoginResponse } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,13 +18,12 @@ export default function SSOExchangePage() {
     const exchangeTicket = async (): Promise<string | null> => {
       const params = new URLSearchParams(window.location.search);
       const ticket = params.get("ticket");
-      const safeReturn = safeReturnPath(params.get("return"), window.location.origin);
       if (!ticket) return "Missing ticket";
       try {
         const res = await api.post<LoginResponse>("/auth/exchange", { ticket });
         if (cancelled) return null;
         sessionStorage.setItem("accessToken", res.data.accessToken);
-        window.location.replace(safeReturn);
+        window.location.replace("/profile");
         return null;
       } catch {
         return "Session handoff failed. The link may have expired.";
