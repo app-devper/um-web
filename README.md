@@ -139,7 +139,7 @@ um-web/
   → POST /auth/sso-ticket (Bearer token เดิม) ──▶
                                                   issue ticket (TTL 60s)
                                               ◀── { ticket }
-  redirect → /sso?ticket=xxx ──────────────────────────────────────────▶ /sso/page.tsx
+  redirect → /sso?ticket=xxx ──────────────────────────────────────────────▶ /sso/page.tsx
                                                                               → POST /auth/exchange { ticket }
                                               ◀──────────────────────────── um-api consume ticket
                                                                               (GETDEL) + ออก JWT ใหม่

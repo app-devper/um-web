@@ -9,5 +9,6 @@ describe("endsSessionOn401", () => {
   it("ends the session for every other 401", () => {
     expect(endsSessionOn401("/user/info")).toBe(true);
     expect(endsSessionOn401("/auth/keep-alive")).toBe(true);
+    expect(endsSessionOn401("/auth/passkeys")).toBe(true);
   });
 });
