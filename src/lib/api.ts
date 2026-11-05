@@ -20,11 +20,18 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+const SESSION_SAFE_401_PREFIX = "/auth/passkey/";
+const TICKET_EXCHANGE_URL = "/auth/exchange";
+
+// A 401 from these calls is the caller's own failure to show, not an expired session.
+export function endsSessionOn401(url: string): boolean {
+  return !url.startsWith(SESSION_SAFE_401_PREFIX) && url !== TICKET_EXCHANGE_URL;
+}
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const passkeyLogin = String(error.config?.url ?? "").startsWith("/auth/passkey/");
-    if (error.response?.status === 401 && !passkeyLogin) {
+    if (error.response?.status === 401 && endsSessionOn401(String(error.config?.url ?? ""))) {
       if (typeof window !== "undefined") {
         sessionStorage.removeItem("accessToken");
         window.location.href = "/login";
