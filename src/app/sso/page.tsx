@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import api from "@/lib/api";
 import type { LoginResponse } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -12,16 +12,22 @@ type Status = "working" | "error";
 export default function SSOExchangePage() {
   const [status, setStatus] = useState<Status>("working");
   const [message, setMessage] = useState<string>("");
+  // The ticket is one-time: the exchange must run exactly once per page,
+  // even when React (Strict Mode in development) runs the effect twice.
+  // A ref survives that re-run; a "cancelled" flag does not, and used to
+  // discard the first exchange's success and let the second consume a
+  // ticket that was already spent.
+  const exchangeStarted = useRef(false);
 
   useEffect(() => {
-    let cancelled = false;
+    if (exchangeStarted.current) return;
+    exchangeStarted.current = true;
     const exchangeTicket = async (): Promise<string | null> => {
       const params = new URLSearchParams(window.location.search);
       const ticket = params.get("ticket");
       if (!ticket) return "Missing ticket";
       try {
         const res = await api.post<LoginResponse>("/auth/exchange", { ticket });
-        if (cancelled) return null;
         sessionStorage.setItem("accessToken", res.data.accessToken);
         window.location.replace("/profile");
         return null;
@@ -30,13 +36,10 @@ export default function SSOExchangePage() {
       }
     };
     exchangeTicket().then((error) => {
-      if (cancelled || !error) return;
+      if (!error) return;
       setStatus("error");
       setMessage(error);
     });
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
   return (
