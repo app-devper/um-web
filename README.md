@@ -139,25 +139,25 @@ um-web/
   → POST /auth/sso-ticket (Bearer token เดิม) ──▶
                                                   issue ticket (TTL 60s)
                                               ◀── { ticket }
-  redirect → /sso?ticket=xxx&return=/profile ──────────────────────────────▶ /sso/page.tsx
+  redirect → /sso?ticket=xxx ──────────────────────────────────────────────▶ /sso/page.tsx
                                                                               → POST /auth/exchange { ticket }
                                               ◀──────────────────────────── um-api consume ticket
                                                                               (GETDEL) + ออก JWT ใหม่
                                               ──── { accessToken } ────────▶ เก็บใน sessionStorage
-                                                                              → redirect ไป return URL
+                                                                              → redirect ไป /profile
 ```
 
 สิ่งที่หน้า `/sso` ทำ ([src/app/sso/page.tsx](src/app/sso/page.tsx)):
-1. อ่าน `?ticket=<uuid>` และ `?return=<path>` (default `/profile`) จาก URL
+1. อ่าน `?ticket=<uuid>` จาก URL
 2. เรียก `POST /auth/exchange` ด้วย ticket
-3. เก็บ `accessToken` ใน `sessionStorage` แล้ว hard-redirect ไป `return` เพื่อให้ `AuthProvider` โหลด user ใหม่
+3. เก็บ `accessToken` ใน `sessionStorage` แล้ว hard-redirect ไป `/profile` เพื่อให้ `AuthProvider` โหลด user ใหม่
 4. ถ้า ticket หมดอายุ / ใช้ซ้ำ → แสดงหน้า "Sign-in failed" พร้อมปุ่มกลับไป `/login`
 
 ตัวอย่างการเรียกจาก front-end ต้นทาง:
 
 ```ts
 const { data } = await api.post<{ ticket: string }>("/auth/sso-ticket");
-window.location.href = `https://devper-um.web.app/sso?ticket=${data.ticket}&return=/profile`;
+window.location.href = `https://devper-um.web.app/sso?ticket=${data.ticket}`;
 ```
 
 ## Related
